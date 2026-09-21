@@ -172,8 +172,7 @@ class ElectionCommission:
         print(self.public_key)
 
     def receive_ballot(self, sender_name, encrypted_ballot):
-        print("\n" + "-" * 70)
-        print(f"ВК отримала бюлетень. Відправник: {sender_name}")
+        print(f"\nВК отримала бюлетень. Відправник: {sender_name}")
 
         try:
             decrypted_text = rsa_decrypt_text(
@@ -181,23 +180,23 @@ class ElectionCommission:
                 self.keys.private_key
             )
             package = json.loads(decrypted_text)
-            print("1. Розшифрування бюлетеня: УСПІШНО.")
+            print("1. Розшифрування бюлетеня: успішно.")
         except (ValueError, json.JSONDecodeError, UnicodeError):
-            print("1. Розшифрування бюлетеня: НЕ ПРОЙДЕНО.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("1. Розшифрування бюлетеня: не пройдено.")
+            print("Бюлетень відхилено.")
             return False
 
         if sender_name not in self.voters:
-            print("2. Перевірка наявності у списку виборців: НЕ ПРОЙДЕНО.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("2. Перевірка наявності у списку виборців: не пройдено.")
+            print("Бюлетень відхилено.")
             return False
 
-        print("2. Перевірка наявності у списку виборців: ПРОЙДЕНО.")
+        print("2. Перевірка наявності у списку виборців: пройдено.")
 
         if package.get("voter") != sender_name:
-            print("3. Перевірка ЕЦП: НЕ ПРОЙДЕНО.")
+            print("3. Перевірка ЕЦП: не пройдено.")
             print("Причина: ПІБ у бюлетені не відповідає відправнику.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("Бюлетень відхилено.")
             return False
 
         ballot = package["ballot"]
@@ -212,11 +211,11 @@ class ElectionCommission:
         print(f"3. Перевірка ЕЦП: H = {h}, Hc = {hc}")
 
         if not signature_ok:
-            print("   ЕЦП: НЕ ПРОЙДЕНО.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("ЕЦП: не пройдено.")
+            print("Бюлетень відхилено.")
             return False
 
-        print("   ЕЦП: ПРОЙДЕНО.")
+        print("ЕЦП: пройдено.")
 
         expected_ballot = (
             f"Виборець={package['voter']};"
@@ -225,15 +224,15 @@ class ElectionCommission:
 
         if ballot != expected_ballot:
             print("Вміст пакета не відповідає підписаному бюлетеню.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("Бюлетень відхилено.")
             return False
 
         if sender_name in self.voted:
-            print("4. Перевірка повторного голосування: НЕ ПРОЙДЕНО.")
-            print("Бюлетень ВІДХИЛЕНО.")
+            print("4. Перевірка повторного голосування: не пройдено.")
+            print("Бюлетень відхилено.")
             return False
 
-        print("4. Перевірка повторного голосування: ПРОЙДЕНО.")
+        print("4. Перевірка повторного голосування: пройдено.")
 
         self.accepted_ballots.append({
             "voter": sender_name,
@@ -241,29 +240,22 @@ class ElectionCommission:
         })
         self.voted.add(sender_name)
 
-        print("5. Бюлетень ПРИЙНЯТО до підрахунку.")
-        print("6. У списку виборців встановлено позначку: ПРОГОЛОСУВАВ.")
+        print("5. Бюлетень прийнято до підрахунку.")
+        print("6. У списку виборців встановлено позначку: проголосував.")
         return True
 
     def publish_results(self):
         results = {candidate: 0 for candidate in self.candidates}
-        invalid_ballots = 0
 
         for ballot in self.accepted_ballots:
             candidate = ballot["candidate"]
-
             if candidate in results:
                 results[candidate] += 1
-            else:
-                invalid_ballots += 1
 
-        print("\nЗАГАЛЬНІ РЕЗУЛЬТАТИ ГОЛОСУВАННЯ")
+        print("\nРЕЗУЛЬТАТИ ГОЛОСУВАННЯ:")
 
         for candidate, votes in results.items():
             print(f"{candidate}: {votes} голос(и)")
-
-        if invalid_ballots:
-            print(f"Некоректні бюлетені: {invalid_ballots}")
 
         maximum = max(results.values())
         winners = [
@@ -273,7 +265,7 @@ class ElectionCommission:
         ]
 
         if len(winners) > 1:
-            print("Результат: РІВНОМІРНИЙ РОЗПОДІЛ ГОЛОСІВ (НІЧИЯ).")
+            print("Результат: нічия. Потрібне повторне голосування.")
         else:
             print(f"Переможець: {winners[0]}")
 
@@ -294,56 +286,52 @@ def main():
 
     commission.print_initial_data()
 
-    print("ПОЗИТИВНІ СЦЕНАРІЇ ПЕРЕВІРОК:")
+    print("\nШТАТНЕ ГОЛОСУВАННЯ:")
 
     normal_votes = [
         (voters[0], "Кандидат 1"),
         (voters[1], "Кандидат 2"),
-        (voters[2], "Кандидат 1"),
-        (voters[3], "Кандидат 2")
+        (voters[2], "Кандидат 1")
     ]
 
     for voter, candidate in normal_votes:
         encrypted_ballot = voter.vote(candidate, commission.public_key)
-
         print(
             f"\nЗашифрований бюлетень {voter.full_name}: "
             f"{encrypted_ballot[:8]} ... "
             f"(усього блоків: {len(encrypted_ballot)})"
         )
-
         commission.receive_ballot(voter.full_name, encrypted_ballot)
 
-    print("\nНЕГАТИВНІ СЦЕНАРІЇ ПЕРЕВІРОК:")
-    print("\nНЕГАТИВНИЙ СЦЕНАРІЙ: ЗМІНА ПІДПИСАНОГО БЮЛЕТЕНЯ")
+    commission.publish_results()
 
-    fifth_voter = voters[4]
-    tampered_package = fifth_voter.form_signed_ballot("Кандидат 1")
+    print("\nТЕСТУВАННЯ:")
+
+    print("\nПОВТОРНЕ ГОЛОСУВАННЯ:")
+    repeated_ballot = voters[0].vote("Кандидат 2", commission.public_key)
+    commission.receive_ballot(voters[0].full_name, repeated_ballot)
+
+    print("\nНезареєстрований виборець:")
+    unknown_voter = Voter("Невідомий Виборець")
+    unknown_ballot = unknown_voter.vote("Кандидат 1", commission.public_key)
+    commission.receive_ballot(unknown_voter.full_name, unknown_ballot)
+
+    print("\nПошкоджений бюлетень:")
+    fourth_voter = voters[3]
+    tampered_package = fourth_voter.form_signed_ballot("Кандидат 1")
     tampered_package["candidate"] = "Кандидат 2"
     tampered_package["ballot"] = (
-        f"Виборець={fifth_voter.full_name};Кандидат=Кандидат 2"
+        f"Виборець={fourth_voter.full_name};Кандидат=Кандидат 2"
     )
-
-    tampered_encrypted = fifth_voter.encrypt_ballot(
+    tampered_encrypted = fourth_voter.encrypt_ballot(
         tampered_package,
         commission.public_key
     )
+    commission.receive_ballot(fourth_voter.full_name, tampered_encrypted)
 
-    commission.receive_ballot(fifth_voter.full_name, tampered_encrypted)
-
-    print("\n")
-    print("НЕГАТИВНИЙ СЦЕНАРІЙ: ВИБОРЕЦЬ ВІДСУТНІЙ У СПИСКУ")
-
-    unknown_voter = Voter("Невідомий Виборець")
-    unknown_ballot = unknown_voter.vote("Кандидат 1", commission.public_key)
-
-    commission.receive_ballot(unknown_voter.full_name, unknown_ballot)
-
-    print("\n")
-    print("НЕГАТИВНИЙ СЦЕНАРІЙ: ПОВТОРНЕ ГОЛОСУВАННЯ")
-
-    repeated_ballot = voters[0].vote("Кандидат 2", commission.public_key)
-    commission.receive_ballot(voters[0].full_name, repeated_ballot)
+    print("\nПеревірка на нічию:")
+    fifth_ballot = voters[4].vote("Кандидат 2", commission.public_key)
+    commission.receive_ballot(voters[4].full_name, fifth_ballot)
 
     commission.publish_results()
 
