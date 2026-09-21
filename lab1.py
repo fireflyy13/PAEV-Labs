@@ -3,7 +3,6 @@ import math
 import random
 from dataclasses import dataclass
 
-
 def is_prime(number):
     if number < 2:
         return False
@@ -11,7 +10,6 @@ def is_prime(number):
         if number % i == 0:
             return False
     return True
-
 
 def generate_prime(left=1000, right=5000):
     while True:
@@ -23,7 +21,6 @@ def generate_prime(left=1000, right=5000):
             if is_prime(number):
                 return number
             number += 2
-
 
 def extended_euclid(a, b):
     r0, r1 = a, b
@@ -38,13 +35,11 @@ def extended_euclid(a, b):
 
     return r0, x0, y0
 
-
 def modular_inverse(e, phi):
     gcd, x, _ = extended_euclid(e, phi)
     if gcd != 1:
         raise ValueError("Оберненого елемента не існує.")
     return x % phi
-
 
 @dataclass
 class RSAKeyPair:
@@ -62,7 +57,6 @@ class RSAKeyPair:
     @property
     def private_key(self):
         return self.d, self.n
-
 
 def generate_rsa_key_pair():
     p = generate_prime()
@@ -88,25 +82,21 @@ def generate_rsa_key_pair():
     d = modular_inverse(e, phi)
     return RSAKeyPair(p, q, n, phi, e, d)
 
-
 def quadratic_hash(message, n):
     h = 0
     for symbol in message:
         h = pow(h + ord(symbol), 2, n)
     return h
 
-
 def create_signature(message, private_key):
     d, n = private_key
     return pow(quadratic_hash(message, n), d, n)
-
 
 def verify_signature(message, signature, public_key):
     e, n = public_key
     h = quadratic_hash(message, n)
     hc = pow(signature, e, n)
     return h == hc, h, hc
-
 
 def rsa_encrypt_text(text, public_key):
     e, n = public_key
@@ -120,11 +110,9 @@ def rsa_encrypt_text(text, public_key):
 
     return encrypted
 
-
 def rsa_decrypt_text(encrypted, private_key):
     d, n = private_key
     return "".join(chr(pow(c, d, n)) for c in encrypted)
-
 
 class Voter:
     def __init__(self, full_name):
@@ -154,7 +142,6 @@ class Voter:
             commission_public_key
         )
 
-
 class ElectionCommission:
     def __init__(self, candidates):
         self.candidates = list(candidates)
@@ -171,23 +158,17 @@ class ElectionCommission:
         self.voters[voter.full_name] = voter.public_key
 
     def print_initial_data(self):
-        print("=" * 70)
-        print("СПИСОК КАНДИДАТІВ")
-        print("=" * 70)
+        print("\nСписок кандидатів:")
 
         for index, candidate in enumerate(self.candidates, 1):
             print(f"{index}. {candidate}")
 
-        print("\n" + "=" * 70)
-        print("СПИСОК ДОПУЩЕНИХ ВИБОРЦІВ ТА ЇХ ВІДКРИТІ КЛЮЧІ")
-        print("=" * 70)
+        print("\nСписок допущених виборців та їх відкриті ключі:")
 
         for full_name, key in self.voters.items():
             print(f"{full_name}: відкритий ключ {key}")
 
-        print("\n" + "=" * 70)
-        print("ВІДКРИТИЙ КЛЮЧ ВИБОРЧОЇ КОМІСІЇ")
-        print("=" * 70)
+        print("\nВідкритий ключ виборчої комісії:")
         print(self.public_key)
 
     def receive_ballot(self, sender_name, encrypted_ballot):
@@ -276,9 +257,7 @@ class ElectionCommission:
             else:
                 invalid_ballots += 1
 
-        print("\n" + "=" * 70)
-        print("ЗАГАЛЬНІ РЕЗУЛЬТАТИ ГОЛОСУВАННЯ")
-        print("=" * 70)
+        print("\nЗАГАЛЬНІ РЕЗУЛЬТАТИ ГОЛОСУВАННЯ")
 
         for candidate, votes in results.items():
             print(f"{candidate}: {votes} голос(и)")
@@ -298,7 +277,6 @@ class ElectionCommission:
         else:
             print(f"Переможець: {winners[0]}")
 
-
 def main():
     candidates = ["Кандидат 1", "Кандидат 2"]
     commission = ElectionCommission(candidates)
@@ -316,9 +294,7 @@ def main():
 
     commission.print_initial_data()
 
-    print("\n\n" + "#" * 70)
-    print("ПОЗИТИВНІ СЦЕНАРІЇ ПЕРЕВІРОК")
-    print("#" * 70)
+    print("ПОЗИТИВНІ СЦЕНАРІЇ ПЕРЕВІРОК:")
 
     normal_votes = [
         (voters[0], "Кандидат 1"),
@@ -338,9 +314,8 @@ def main():
 
         commission.receive_ballot(voter.full_name, encrypted_ballot)
 
-    print("\n\n" + "#" * 70)
-    print("НЕГАТИВНИЙ СЦЕНАРІЙ: ЗМІНА ПІДПИСАНОГО БЮЛЕТЕНЯ")
-    print("#" * 70)
+    print("\nНЕГАТИВНІ СЦЕНАРІЇ ПЕРЕВІРОК:")
+    print("\nНЕГАТИВНИЙ СЦЕНАРІЙ: ЗМІНА ПІДПИСАНОГО БЮЛЕТЕНЯ")
 
     fifth_voter = voters[4]
     tampered_package = fifth_voter.form_signed_ballot("Кандидат 1")
@@ -356,24 +331,21 @@ def main():
 
     commission.receive_ballot(fifth_voter.full_name, tampered_encrypted)
 
-    print("\n\n" + "#" * 70)
+    print("\n")
     print("НЕГАТИВНИЙ СЦЕНАРІЙ: ВИБОРЕЦЬ ВІДСУТНІЙ У СПИСКУ")
-    print("#" * 70)
 
     unknown_voter = Voter("Невідомий Виборець")
     unknown_ballot = unknown_voter.vote("Кандидат 1", commission.public_key)
 
     commission.receive_ballot(unknown_voter.full_name, unknown_ballot)
 
-    print("\n\n" + "#" * 70)
+    print("\n")
     print("НЕГАТИВНИЙ СЦЕНАРІЙ: ПОВТОРНЕ ГОЛОСУВАННЯ")
-    print("#" * 70)
 
     repeated_ballot = voters[0].vote("Кандидат 2", commission.public_key)
     commission.receive_ballot(voters[0].full_name, repeated_ballot)
 
     commission.publish_results()
-
 
 if __name__ == "__main__":
     main()
