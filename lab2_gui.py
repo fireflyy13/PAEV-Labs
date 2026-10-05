@@ -326,18 +326,33 @@ class VotingApp:
         self.section(f"Тест: повторне отримання набору ({voter.full_name})")
 
         if voter.full_name not in self.commission.issued_voters:
-            self.append_log("Спочатку виборець отримає один коректний підписаний набір.")
-            success = self.run_and_capture(issue_signed_set, voter, self.commission)
+            self.append_log(
+                "Спочатку виборець отримає один коректний підписаний набір."
+            )
+
+            success = self.run_and_capture(
+                issue_signed_set,
+                voter,
+                self.commission
+            )
+
             if not success:
                 self.refresh_state()
                 return
 
-        masked_sets = voter.prepare_ballot_sets(self.candidates, self.commission.public_key)
+        temporary_voter = Voter(voter.full_name)
+
+        masked_sets = temporary_voter.prepare_ballot_sets(
+            self.candidates,
+            self.commission.public_key
+        )
+
         self.run_and_capture(
             self.commission.choose_sets_for_check,
             voter.full_name,
-            masked_sets,
+            masked_sets
         )
+
         self.refresh_state()
 
     def test_double_vote(self):

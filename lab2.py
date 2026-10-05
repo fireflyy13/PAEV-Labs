@@ -421,8 +421,14 @@ class ElectionCommission:
                 f"підпис ВК={ballot['signature']}"
             )
 
-
 def issue_signed_set(voter, commission):
+    if voter.full_name in commission.issued_voters:
+        print(f"Запит на підписаний набір від: {voter.full_name}")
+        print("Перевірка виборця: пройдено.")
+        print("Перевірка повторного отримання набору: не пройдено.")
+        print("У підписанні відмовлено.")
+        return False
+
     masked_sets = voter.prepare_ballot_sets(
         commission.candidates,
         commission.public_key
@@ -458,7 +464,6 @@ def issue_signed_set(voter, commission):
 
     print("Виборець зняв маскування з підписів.")
     return True
-
 
 def main():
     candidates = ["Кандидат 1", "Кандидат 2"]
